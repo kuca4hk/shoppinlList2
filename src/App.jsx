@@ -21,7 +21,13 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={<ShoppingListOverview lists={shoppingLists} />}
+            element={
+              <ShoppingListOverview
+                lists={shoppingLists}
+                setLists={setShoppingLists}
+                currentUser={CURRENT_USER}
+              />
+            }
           />
           <Route
             path="/list/:id"

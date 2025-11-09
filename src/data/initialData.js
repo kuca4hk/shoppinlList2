@@ -5,6 +5,7 @@ export const INITIAL_SHOPPING_LISTS = [
     name: 'Týdenní nákup',
     owner: 'user1',
     members: ['user1', 'user2'],
+    archived: false,
     items: [
       { id: '1', name: 'Mléko', quantity: 2, resolved: false },
       { id: '2', name: 'Chléb', quantity: 1, resolved: true },
@@ -18,6 +19,7 @@ export const INITIAL_SHOPPING_LISTS = [
     name: 'Oslava narozenin',
     owner: 'user2',
     members: ['user1', 'user2', 'user3'],
+    archived: false,
     items: [
       { id: '6', name: 'Dort', quantity: 1, resolved: false },
       { id: '7', name: 'Svíčky', quantity: 20, resolved: false },
@@ -30,6 +32,7 @@ export const INITIAL_SHOPPING_LISTS = [
     name: 'Dovolená',
     owner: 'user1',
     members: ['user1', 'user3'],
+    archived: true,
     items: [
       { id: '10', name: 'Opalovací krém', quantity: 1, resolved: false },
       { id: '11', name: 'Plavky', quantity: 2, resolved: false },
@@ -39,7 +42,7 @@ export const INITIAL_SHOPPING_LISTS = [
 ];
 
 // Simulace přihlášeného uživatele
-export const CURRENT_USER = 'user3';
+export const CURRENT_USER = 'user1';
 
 // Databáze uživatelů (pro zobrazení jmen)
 export const USERS = {
