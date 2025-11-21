@@ -1,0 +1,599 @@
+{
+  "info": {
+    "name": "Shopping List API - Complete",
+    "description": "Kompletní API pro správu nákupních seznamů s autentizací a autorizací podle zadání",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shoppingListId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "itemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId2",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Kontrola stavu serveru"
+      },
+      "response": []
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User 1 (John)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.data.token);",
+                  "    pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    console.log('Token saved:', response.data.token);",
+                  "    console.log('User ID saved:', response.data.user._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registrace prvního uživatele"
+          },
+          "response": []
+        },
+        {
+          "name": "Register User 2 (Jane)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId2', response.data.user._id);",
+                  "    console.log('User 2 ID saved:', response.data.user._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registrace druhého uživatele pro testování members"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('token', response.data.token);",
+                  "    pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    console.log('Token saved:', response.data.token);",
+                  "    console.log('User ID saved:', response.data.user._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Přihlášení uživatele"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Získání informací o přihlášeném uživateli"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shopping Lists",
+      "item": [
+        {
+          "name": "Get all shoppingList",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", ""]
+            },
+            "description": "GET shoppingList/ - Získání všech nákupních seznamů (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create new shoppingList",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('shoppingListId', response.data.shoppingList._id);",
+                  "    console.log('Shopping List ID saved:', response.data.shoppingList._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Weekly Groceries\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", ""]
+            },
+            "description": "POST shoppingList/ - Vytvoření nového nákupního seznamu (Owner)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get one Shoppinglist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}"]
+            },
+            "description": "GET shoppingList/<id:shoppingList>/ - Získání jednoho seznamu (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update ShoppingList",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Weekly Groceries - Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}"]
+            },
+            "description": "PATCH shoppingList/<id:shoppingList>/ - Aktualizace seznamu (Owner)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete one shoppingList",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}"]
+            },
+            "description": "DELETE shoppingList/<id:shoppingList>/ - Smazání seznamu (Owner)"
+          },
+          "response": []
+        },
+        {
+          "name": "Archive shoppingList",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shoppingListId\": \"{{shoppingListId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/archive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "archive"]
+            },
+            "description": "POST shoppingList/archive - Archivace seznamu (Owner)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Members Management",
+      "item": [
+        {
+          "name": "Invite member to shoppingList",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId2}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/invite",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "invite"]
+            },
+            "description": "POST shoppingList/<id:shoppingList>/invite - Pozvání člena (Owner)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Members on shoppingList",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "members"]
+            },
+            "description": "GET shoppingList/<id:shoppingList>/members - Získání členů (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove members of shoppingList",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId2}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "members"]
+            },
+            "description": "DELETE shoppingList/<id:shoppingList>/members - Odebrání člena (Owner)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Get Items of shoppingList",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "items"]
+            },
+            "description": "GET shoppingList/<id:shoppingList>/items - Získání položek (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Add items to shoppingList",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('itemId', response.data.item._id);",
+                  "    console.log('Item ID saved:', response.data.item._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Milk\",\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "items"]
+            },
+            "description": "POST shoppingList/<id:shoppingList>/items - Přidání položky (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update item of shoppingList",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Milk - Organic\",\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/items/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "items", "{{itemId}}"]
+            },
+            "description": "PATCH shoppingList/<id:shoppingList>/items/<id:items>/ - Aktualizace položky (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete item from shoppingList",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/items/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "items", "{{itemId}}"]
+            },
+            "description": "DELETE shoppingList/<id:shoppingList>/items/<id:items>/ - Smazání položky (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "Check item on shoppingList",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{itemId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "check"]
+            },
+            "description": "POST shoppingList/<id:shoppingList>/check - Označení jako hotové (Owner, Member)"
+          },
+          "response": []
+        },
+        {
+          "name": "UnCheck item on shoppingList",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{itemId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shoppingList/{{shoppingListId}}/uncheck",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shoppingList", "{{shoppingListId}}", "uncheck"]
+            },
+            "description": "POST shoppingList/<id:shoppingList>/uncheck - Zrušení označení jako hotové (Owner, Member)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-11-21T11:15:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_shopping_list",
+      "_type": "workspace",
+      "name": "Shopping List API",
+      "description": "Complete API for Shopping List application with MongoDB persistence",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3000/api",
+        "token": ""
+      },
+      "parentId": "wrk_shopping_list"
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "name": "Authentication",
+      "description": "User authentication endpoints",
+      "parentId": "wrk_shopping_list"
+    },
+    {
+      "_id": "req_register",
+      "_type": "request",
+      "name": "Register",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/register",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "fld_auth",
+      "description": "Register a new user account"
+    },
+    {
+      "_id": "req_login",
+      "_type": "request",
+      "name": "Login",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "fld_auth",
+      "description": "Login with email and password. Returns JWT token."
+    },
+    {
+      "_id": "req_me",
+      "_type": "request",
+      "name": "Get Current User",
+      "method": "GET",
+      "url": "{{ _.base_url }}/auth/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_auth",
+      "description": "Get current authenticated user profile"
+    },
+    {
+      "_id": "fld_shopping_list",
+      "_type": "request_group",
+      "name": "Shopping Lists",
+      "description": "Shopping list CRUD operations",
+      "parentId": "wrk_shopping_list"
+    },
+    {
+      "_id": "req_list_all",
+      "_type": "request",
+      "name": "Get All Lists",
+      "method": "GET",
+      "url": "{{ _.base_url }}/shoppingList",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Get all shopping lists where user is owner or member"
+    },
+    {
+      "_id": "req_create_list",
+      "_type": "request",
+      "name": "Create List",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"My New Shopping List\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Create a new shopping list"
+    },
+    {
+      "_id": "req_get_list",
+      "_type": "request",
+      "name": "Get Single List",
+      "method": "GET",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Get a single shopping list by ID"
+    },
+    {
+      "_id": "req_update_list",
+      "_type": "request",
+      "name": "Update List",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Updated List Name\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Update shopping list name (owner only)"
+    },
+    {
+      "_id": "req_delete_list",
+      "_type": "request",
+      "name": "Delete List",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Delete shopping list and all items (owner only)"
+    },
+    {
+      "_id": "req_archive_list",
+      "_type": "request",
+      "name": "Archive/Unarchive List",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList/archive",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"shoppingListId\": \"6741a1b2c3d4e5f6a7b8c9d3\",\n  \"archived\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_shopping_list",
+      "description": "Archive or unarchive a shopping list (owner only)"
+    },
+    {
+      "_id": "fld_members",
+      "_type": "request_group",
+      "name": "Members Management",
+      "description": "Manage shopping list members",
+      "parentId": "wrk_shopping_list"
+    },
+    {
+      "_id": "req_get_members",
+      "_type": "request",
+      "name": "Get Members",
+      "method": "GET",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/members",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_members",
+      "description": "Get all members of a shopping list"
+    },
+    {
+      "_id": "req_invite_member",
+      "_type": "request",
+      "name": "Invite Member",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/invite",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"userId\": \"6741a1b2c3d4e5f6a7b8c9d2\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_members",
+      "description": "Invite a user to shopping list (owner only)"
+    },
+    {
+      "_id": "req_remove_member",
+      "_type": "request",
+      "name": "Remove Member",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/members",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"userId\": \"6741a1b2c3d4e5f6a7b8c9d2\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_members",
+      "description": "Remove member from shopping list (owner only)"
+    },
+    {
+      "_id": "fld_items",
+      "_type": "request_group",
+      "name": "Items",
+      "description": "Shopping list items operations",
+      "parentId": "wrk_shopping_list"
+    },
+    {
+      "_id": "req_get_items",
+      "_type": "request",
+      "name": "Get All Items",
+      "method": "GET",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/items",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Get all items for a shopping list"
+    },
+    {
+      "_id": "req_add_item",
+      "_type": "request",
+      "name": "Add Item",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/items",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Bananas\",\n  \"quantity\": 6\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Add new item to shopping list"
+    },
+    {
+      "_id": "req_update_item",
+      "_type": "request",
+      "name": "Update Item",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/items/6741a1b2c3d4e5f6a7b8c9e0",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Organic Milk\",\n  \"quantity\": 3\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Update item name and/or quantity"
+    },
+    {
+      "_id": "req_delete_item",
+      "_type": "request",
+      "name": "Delete Item",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/items/6741a1b2c3d4e5f6a7b8c9e0",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Delete an item from shopping list"
+    },
+    {
+      "_id": "req_check_item",
+      "_type": "request",
+      "name": "Check Item (Mark Completed)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/check",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"itemId\": \"6741a1b2c3d4e5f6a7b8c9e0\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Mark item as completed"
+    },
+    {
+      "_id": "req_uncheck_item",
+      "_type": "request",
+      "name": "Uncheck Item (Mark Not Completed)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/shoppingList/6741a1b2c3d4e5f6a7b8c9d3/uncheck",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"itemId\": \"6741a1b2c3d4e5f6a7b8c9e0\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_items",
+      "description": "Mark item as not completed"
+    }
+  ]
+}
