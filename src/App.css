@@ -64,6 +64,32 @@ body::before {
   letter-spacing: -0.5px;
 }
 
+.app-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.app-nav a {
+  text-decoration: none;
+  color: #555;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.app-nav a:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.app-nav a.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
 .user-info {
   color: #555;
   font-size: 0.95rem;

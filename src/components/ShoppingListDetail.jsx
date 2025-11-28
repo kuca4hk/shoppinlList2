@@ -1,19 +1,93 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { USERS } from '../data/initialData';
+import { api } from '../api/client';
+import { KNOWN_USERS } from '../data/users';
 import Button from './Button';
 import './ShoppingListDetail.css';
 
-function ShoppingListDetail({ lists, setLists, currentUser }) {
+function ShoppingListDetail({ user, token }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const list = lists.find(l => l.id === id);
 
+  const [list, setList] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
   const [filter, setFilter] = useState('all'); // 'all', 'unresolved'
+
+  // Sledování změn pro optimistickou aktualizaci
+  const [changedItems, setChangedItems] = useState(new Set());
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Načíst detail seznamu z API
+  useEffect(() => {
+    if (token && id) {
+      loadListDetail();
+    }
+  }, [token, id]);
+
+  // Varování při opuštění stránky s neuloženými změnami
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Automatické uložení při unmount
+  useEffect(() => {
+    return () => {
+      // Poznámka: Toto se spustí pouze při unmount komponenty
+      // Nemůžeme zde spolehlivě použít async funkci, protože komponenta už bude unmounted
+      // Uživatel by měl manuálně kliknout na "Uložit změny"
+    };
+  }, []); // Prázdné dependencies = cleanup se spustí POUZE při unmount
+
+  const loadListDetail = async () => {
+    if (!token || !id) return;
+
+    setLoading(true);
+    try {
+      // Načíst detail seznamu
+      const result = await api.getShoppingList(token, id);
+      const listData = result.shoppingList || result;
+
+      // Načíst položky samostatně
+      const itemsResult = await api.getItems(token, id);
+      const items = itemsResult.items || [];
+
+      // Spojit data
+      setList({
+        ...listData,
+        items: items
+      });
+
+      // Vyčistit změny po načtení nových dat
+      setChangedItems(new Set());
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Chyba při načítání seznamu:', error);
+      alert('Nepodařilo se načíst seznam');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="detail-container">
+        <p>Načítání...</p>
+      </div>
+    );
+  }
 
   if (!list) {
     return (
@@ -24,8 +98,11 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
     );
   }
 
-  const isOwner = list.owner === currentUser;
-  const isMember = list.members.includes(currentUser);
+  // Backend používá ownerId místo owner
+  const owner = list.ownerId || list.owner;
+  const isOwner = owner?._id === user?._id;
+  // Vlastník je vždy člen, i když není v members array
+  const isMember = isOwner || list.members?.some(m => m._id === user?._id);
 
   // Úprava názvu seznamu
   const handleStartEditName = () => {
@@ -33,13 +110,17 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
     setIsEditingName(true);
   };
 
-  const handleSaveName = () => {
-    if (editedName.trim()) {
-      setLists(lists.map(l =>
-        l.id === id ? { ...l, name: editedName } : l
-      ));
+  const handleSaveName = async () => {
+    if (!editedName.trim() || !token) return;
+
+    try {
+      await api.updateShoppingList(token, id, editedName);
+      setIsEditingName(false);
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při úpravě názvu:', error);
+      alert('Nepodařilo se upravit název');
     }
-    setIsEditingName(false);
   };
 
   const handleCancelEditName = () => {
@@ -48,93 +129,161 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
   };
 
   // Přidání položky
-  const handleAddItem = (e) => {
+  const handleAddItem = async (e) => {
     e.preventDefault();
-    if (newItemName.trim()) {
-      const newItem = {
-        id: Date.now().toString(),
-        name: newItemName,
-        quantity: 1,
-        resolved: false
-      };
-      setLists(lists.map(l =>
-        l.id === id ? { ...l, items: [...l.items, newItem] } : l
-      ));
+    if (!newItemName.trim() || !token) return;
+
+    try {
+      await api.addItem(token, id, newItemName, 1);
       setNewItemName('');
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při přidávání položky:', error);
+      alert('Nepodařilo se přidat položku');
     }
   };
 
-  // Změna množství položky
+  // Změna množství položky (pouze lokálně)
   const handleQuantityChange = (itemId, change) => {
-    setLists(lists.map(l =>
-      l.id === id ? {
-        ...l,
-        items: l.items.map(item =>
-          item.id === itemId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + change) } : item
-        )
-      } : l
-    ));
+    setList(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item._id === itemId) {
+          const newQuantity = Math.max(1, (item.quantity || 1) + change);
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      })
+    }));
+
+    // Označit jako změněnou
+    setChangedItems(prev => new Set(prev).add(itemId));
+    setHasUnsavedChanges(true);
   };
 
   // Odebrání položky
-  const handleRemoveItem = (itemId) => {
-    setLists(lists.map(l =>
-      l.id === id ? { ...l, items: l.items.filter(item => item.id !== itemId) } : l
-    ));
+  const handleRemoveItem = async (itemId) => {
+    if (!token) return;
+
+    try {
+      await api.deleteItem(token, id, itemId);
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při odebírání položky:', error);
+      alert('Nepodařilo se odebrat položku');
+    }
   };
 
-  // Označení položky jako vyřešené/nevyřešené
+  // Označení položky jako vyřešené/nevyřešené (pouze lokálně)
   const handleToggleItem = (itemId) => {
-    setLists(lists.map(l =>
-      l.id === id ? {
-        ...l,
-        items: l.items.map(item =>
-          item.id === itemId ? { ...item, resolved: !item.resolved } : item
-        )
-      } : l
-    ));
+    setList(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item._id === itemId) {
+          return { ...item, completed: !item.completed };
+        }
+        return item;
+      })
+    }));
+
+    // Označit jako změněnou
+    setChangedItems(prev => new Set(prev).add(itemId));
+    setHasUnsavedChanges(true);
+  };
+
+  // Uložit všechny změny najednou
+  const handleSaveChanges = async () => {
+    if (!token || !hasUnsavedChanges) return;
+
+    setSaving(true);
+    try {
+      // Projít všechny změněné položky a uložit je
+      for (const itemId of changedItems) {
+        const item = list.items.find(i => i._id === itemId);
+        if (!item) continue;
+
+        // Aktualizovat položku (quantity a name)
+        await api.updateItem(token, id, itemId, item.name, item.quantity);
+
+        // Aktualizovat completed status
+        const originalItem = list.items.find(i => i._id === itemId);
+        if (item.completed) {
+          await api.checkItem(token, id, itemId);
+        } else {
+          await api.uncheckItem(token, id, itemId);
+        }
+      }
+
+      // Vyčistit změny
+      setChangedItems(new Set());
+      setHasUnsavedChanges(false);
+
+      // Znovu načíst data pro potvrzení
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při ukládání změn:', error);
+      alert('Nepodařilo se uložit některé změny');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Přidání člena
-  const handleAddMember = (e) => {
+  const handleAddMember = async (e) => {
     e.preventDefault();
-    if (newMemberId && !list.members.includes(newMemberId) && USERS[newMemberId]) {
-      setLists(lists.map(l =>
-        l.id === id ? { ...l, members: [...l.members, newMemberId] } : l
-      ));
+    if (!newMemberId || !token) return;
+
+    try {
+      await api.inviteUser(token, id, newMemberId);
       setNewMemberId('');
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při přidávání člena:', error);
+      alert('Nepodařilo se přidat člena');
     }
   };
 
   // Odebrání člena (pouze vlastník)
-  const handleRemoveMember = (memberId) => {
-    if (memberId === list.owner) {
+  const handleRemoveMember = async (memberId) => {
+    const owner = list.ownerId || list.owner;
+    if (memberId === owner?._id) {
       alert('Nelze odebrat vlastníka seznamu');
       return;
     }
-    setLists(lists.map(l =>
-      l.id === id ? { ...l, members: l.members.filter(m => m !== memberId) } : l
-    ));
+
+    if (!token) return;
+
+    try {
+      await api.removeUser(token, id, memberId);
+      await loadListDetail();
+    } catch (error) {
+      console.error('Chyba při odebírání člena:', error);
+      alert('Nepodařilo se odebrat člena');
+    }
   };
 
   // Odejít ze seznamu (člen, který není vlastník)
-  const handleLeaveList = () => {
-    if (window.confirm('Opravdu chcete opustit tento seznam?')) {
-      setLists(lists.map(l =>
-        l.id === id ? { ...l, members: l.members.filter(m => m !== currentUser) } : l
-      ));
+  const handleLeaveList = async () => {
+    if (!window.confirm('Opravdu chcete opustit tento seznam?')) return;
+    if (!token || !user) return;
+
+    try {
+      await api.removeUser(token, id, user._id);
       navigate('/');
+    } catch (error) {
+      console.error('Chyba při opouštění seznamu:', error);
+      alert('Nepodařilo se opustit seznam');
     }
   };
 
   // Filtrování položek
   const filteredItems = filter === 'unresolved'
-    ? list.items.filter(item => !item.resolved)
+    ? list.items.filter(item => !item.completed)
     : list.items;
 
-  const availableUsers = Object.values(USERS).filter(
-    user => !list.members.includes(user.id)
-  );
+  // Dostupní uživatelé pro přidání (kteří ještě nejsou členy)
+  const membersIds = list.members?.map(m => m._id) || [];
+  const availableUsers = KNOWN_USERS.filter(u => !membersIds.includes(u._id));
 
   return (
     <div className="detail-container">
@@ -166,7 +315,7 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
 
         <div className="owner-info">
           <span className="owner-label">
-            Vlastník: <strong>{USERS[list.owner].name}</strong>
+            Vlastník: <strong>{owner?.name || 'Neznámý'}</strong>
           </span>
           {!isOwner && isMember && (
             <Button text="Opustit seznam" color="danger" action={handleLeaveList} />
@@ -177,20 +326,20 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
       <div className="detail-content">
         {/* Členové */}
         <section className="members-section">
-          <h3>Členové ({list.members.length})</h3>
+          <h3>Členové ({list.members?.length || 0})</h3>
           <div className="members-list">
-            {list.members.map(memberId => (
-              <div key={memberId} className="member-item">
+            {list.members?.map(member => (
+              <div key={member._id} className="member-item">
                 <span>
-                  {USERS[memberId].name}
-                  {memberId === list.owner && ' (vlastník)'}
+                  {member.name}
+                  {member._id === owner?._id && ' (vlastník)'}
                 </span>
-                {isOwner && memberId !== list.owner && (
+                {isOwner && member._id !== owner?._id && (
                   <Button
                     text="Odebrat"
                     color="danger"
                     size="small"
-                    action={() => handleRemoveMember(memberId)}
+                    action={() => handleRemoveMember(member._id)}
                   />
                 )}
               </div>
@@ -204,15 +353,18 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
                 onChange={(e) => setNewMemberId(e.target.value)}
                 className="select-input"
               >
-                <option value="">Vyberte člena k přidání...</option>
+                <option value="">Vyberte uživatele k přidání...</option>
                 {availableUsers.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
+                  <option key={user._id} value={user._id}>
+                    {user.name} ({user.email})
                   </option>
                 ))}
               </select>
               <Button text="Přidat člena" color="primary" type="submit" />
             </form>
+          )}
+          {isOwner && availableUsers.length === 0 && (
+            <p className="empty-message">Všichni dostupní uživatelé jsou již členy.</p>
           )}
         </section>
 
@@ -222,10 +374,23 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
             <div className="items-title">
               <h3>Položky</h3>
               <span className="items-count">
-                Vyřešeno: {list.items.filter(item => item.resolved).length} / {list.items.length}
+                Vyřešeno: {list.items?.filter(item => item.completed).length || 0} / {list.items?.length || 0}
               </span>
+              {hasUnsavedChanges && (
+                <span style={{ marginLeft: '10px', color: '#ff6b6b', fontSize: '14px' }}>
+                  • Neuložené změny
+                </span>
+              )}
             </div>
             <div className="filter-buttons">
+              {hasUnsavedChanges && (
+                <Button
+                  text={saving ? "Ukládám..." : "Uložit změny"}
+                  color="success"
+                  action={handleSaveChanges}
+                  disabled={saving}
+                />
+              )}
               <Button
                 text="Všechny"
                 color="filter"
@@ -263,12 +428,12 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
               </p>
             ) : (
               filteredItems.map(item => (
-                <div key={item.id} className={`item ${item.resolved ? 'resolved' : ''}`}>
+                <div key={item._id} className={`item ${item.completed ? 'resolved' : ''}`}>
                   <label className="item-checkbox">
                     <input
                       type="checkbox"
-                      checked={item.resolved}
-                      onChange={() => handleToggleItem(item.id)}
+                      checked={item.completed}
+                      onChange={() => handleToggleItem(item._id)}
                       disabled={!isMember}
                     />
                     <span className="item-name">
@@ -280,7 +445,7 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
                     {isMember && (
                       <div className="quantity-controls">
                         <button
-                          onClick={() => handleQuantityChange(item.id, -1)}
+                          onClick={() => handleQuantityChange(item._id, -1)}
                           className="quantity-btn"
                           disabled={item.quantity <= 1}
                           title="Snížit množství"
@@ -289,7 +454,7 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
                         </button>
                         <span className="quantity-display">{item.quantity || 1}</span>
                         <button
-                          onClick={() => handleQuantityChange(item.id, 1)}
+                          onClick={() => handleQuantityChange(item._id, 1)}
                           className="quantity-btn"
                           title="Zvýšit množství"
                         >
@@ -302,7 +467,7 @@ function ShoppingListDetail({ lists, setLists, currentUser }) {
                         text="Odebrat"
                         color="danger"
                         size="small"
-                        action={() => handleRemoveItem(item.id)}
+                        action={() => handleRemoveItem(item._id)}
                       />
                     )}
                   </div>

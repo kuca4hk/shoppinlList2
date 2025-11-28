@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { USERS } from '../data/initialData';
+import { api } from '../api/client';
 import Button from './Button';
 import Modal from './Modal';
 import './ShoppingListOverview.css';
 
-function ShoppingListOverview({ lists, setLists, currentUser }) {
+function ShoppingListOverview({ lists, setLists, user, token, onListsChange }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -13,20 +13,19 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
   const [showArchived, setShowArchived] = useState(false);
 
   // Přidání nového seznamu
-  const handleAddList = (e) => {
+  const handleAddList = async (e) => {
     e.preventDefault();
-    if (newListName.trim()) {
-      const newList = {
-        id: Date.now().toString(),
-        name: newListName,
-        owner: currentUser,
-        members: [currentUser],
-        archived: false,
-        items: []
-      };
-      setLists([...lists, newList]);
+    if (!newListName.trim() || !token) return;
+
+    try {
+      await api.createShoppingList(token, newListName);
       setNewListName('');
       setIsModalOpen(false);
+      // Znovu načíst seznamy z API
+      if (onListsChange) onListsChange();
+    } catch (error) {
+      console.error('Chyba při vytváření seznamu:', error);
+      alert('Nepodařilo se vytvořit seznam');
     }
   };
 
@@ -39,11 +38,18 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
   };
 
   // Potvrdit smazání seznamu
-  const confirmDelete = () => {
-    if (listToDelete) {
-      setLists(lists.filter(list => list.id !== listToDelete.id));
+  const confirmDelete = async () => {
+    if (!listToDelete || !token) return;
+
+    try {
+      await api.deleteShoppingList(token, listToDelete.id);
       setIsDeleteModalOpen(false);
       setListToDelete(null);
+      // Znovu načíst seznamy z API
+      if (onListsChange) onListsChange();
+    } catch (error) {
+      console.error('Chyba při mazání seznamu:', error);
+      alert('Nepodařilo se smazat seznam');
     }
   };
 
@@ -54,12 +60,20 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
   };
 
   // Přepnout archivaci (pouze vlastník)
-  const toggleArchive = (listId, e) => {
+  const toggleArchive = async (listId, e) => {
     e.preventDefault();
     e.stopPropagation();
-    setLists(lists.map(list =>
-      list.id === listId ? { ...list, archived: !list.archived } : list
-    ));
+
+    if (!token) return;
+
+    try {
+      await api.archiveShoppingList(token, listId);
+      // Znovu načíst seznamy z API
+      if (onListsChange) onListsChange();
+    } catch (error) {
+      console.error('Chyba při archivaci seznamu:', error);
+      alert('Nepodařilo se archivovat seznam');
+    }
   };
 
   // Filtrování seznamů
@@ -104,12 +118,15 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
       ) : (
         <div className="lists-grid">
           {filteredLists.map(list => {
-            const isOwner = list.owner === currentUser;
-            const isMember = list.members.includes(currentUser);
+            // Backend používá ownerId místo owner
+            const owner = list.ownerId || list.owner;
+            const isOwner = owner?._id === user?._id;
+            // Vlastník je vždy člen, i když není v members array
+            const isMember = isOwner || list.members?.some(m => m._id === user?._id);
 
             return (
-              <div key={list.id} className="list-card-wrapper">
-                <Link to={`/list/${list.id}`} className={`list-card ${list.archived ? 'archived' : ''}`}>
+              <div key={list._id} className="list-card-wrapper">
+                <Link to={`/list/${list._id}`} className={`list-card ${list.archived ? 'archived' : ''}`}>
                   <div className="list-card-header">
                     <h3>{list.name}</h3>
                     <div className="card-actions">
@@ -117,7 +134,7 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
                         <>
                           <button
                             className="archive-btn"
-                            onClick={(e) => toggleArchive(list.id, e)}
+                            onClick={(e) => toggleArchive(list._id, e)}
                             title={list.archived ? "Obnovit ze archivu" : "Archivovat"}
                             aria-label={list.archived ? "Obnovit ze archivu" : "Archivovat"}
                           >
@@ -125,7 +142,7 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
                           </button>
                           <button
                             className="delete-btn"
-                            onClick={(e) => handleDeleteClick(list.id, list.name, e)}
+                            onClick={(e) => handleDeleteClick(list._id, list.name, e)}
                             title="Smazat seznam"
                             aria-label="Smazat seznam"
                           >
@@ -136,7 +153,7 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
                     </div>
                   </div>
                   <div className="list-owner">
-                    {USERS[list.owner].name}
+                    {owner?.name || 'Neznámý'}
                   </div>
                   {list.archived && (
                     <div className="archived-badge">
@@ -148,13 +165,6 @@ function ShoppingListOverview({ lists, setLists, currentUser }) {
                       Nejste členem
                     </div>
                   )}
-                  <div className="list-stats-wrapper">
-                    <div className="list-stats">
-                      <span>{list.items.length}</span>
-                      <span>{list.items.filter(item => item.resolved).length}</span>
-                      <span>{list.members.length}</span>
-                    </div>
-                  </div>
                 </Link>
               </div>
             );
