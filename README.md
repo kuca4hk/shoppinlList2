@@ -1,11 +1,12 @@
 # Nákupní seznam - React aplikace
 
-Aplikace pro správu nákupních seznamů vytvořená v React s React Router.
+Moderní webová aplikace pro správu nákupních seznamů vytvořená v React s autentizací a real-time synchronizací přes REST API.
 
 ## Požadavky
 
 - **Node.js**: verze 22.12.0 nebo vyšší
 - **npm**: verze 10.9.0 nebo vyšší
+- **Docker a Docker Compose**: pro spuštění backendu (MongoDB)
 
 Ověření verzí:
 ```bash
@@ -13,100 +14,92 @@ node --version
 npm --version
 ```
 
-## Spuštění aplikace
+## Struktura projektu
 
-### Instalace závislostí
-
-```bash
-npm install
+Projekt se skládá ze dvou částí:
+```
+shoppinlList2/
+├── backend/           # Backend API (Express.js + MongoDB)
+├── src/              # Frontend (React + Vite)
+├── package.json      # Frontend dependencies
+└── README.md         # Tento soubor
 ```
 
-### Spuštění vývojového serveru
+## Kompletní instalace a spuštění
+
+### 1. Spuštění backendu (API + databáze)
+
+**Backend je nezbytný pro běh aplikace!** Frontend se na něj připojuje přes API.
 
 ```bash
+# Přejděte do složky backend
+cd backend
+
+# Nainstalujte závislosti
+npm install
+
+# Spusťte MongoDB v Dockeru
+docker-compose up -d
+
+# Počkejte pár sekund, než se MongoDB nastartuje
+sleep 5
+
+# Naplňte databázi testovacími daty
+npm run seed
+
+# Spusťte backend server (běží na http://localhost:3000)
+npm run dev
+```
+
+Backend nyní běží na `http://localhost:3000` a je připravený přijímat požadavky z frontendu.
+
+**Poznámka:** Podrobné informace o backendu najdete v `backend/README.md`
+
+### 2. Spuštění frontendu (React aplikace)
+
+Otevřete **nový terminál** (backend musí stále běžet) a spusťte:
+
+```bash
+# Vraťte se do root složky projektu
+cd ..
+
+# Nainstalujte frontend závislosti
+npm install
+
+# Spusťte vývojový server (běží na http://localhost:5173)
 npm run dev
 ```
 
 Aplikace bude dostupná na `http://localhost:5173`
 
-### Build pro produkci
+## Rychlý start (vše najednou)
 
+Pro pohodlné spuštění celého projektu můžete použít dva terminály:
+
+**Terminál 1 - Backend:**
 ```bash
-npm run build
+cd backend && npm install && docker-compose up -d && sleep 5 && npm run seed && npm run dev
 ```
 
-## Struktura projektu
-
-```
-src/
-├── components/
-│   ├── Button.jsx                  # Znovupoužitelná komponenta tlačítka
-│   ├── Button.css
-│   ├── ShoppingListOverview.jsx    # Přehled všech seznamů
-│   ├── ShoppingListOverview.css
-│   ├── ShoppingListDetail.jsx      # Detail seznamu s business logikou
-│   └── ShoppingListDetail.css
-├── data/
-│   └── initialData.js              # Počáteční data (konstanty)
-├── App.jsx                         # Hlavní komponenta s routingem
-├── App.css                         # Globální styly
-└── main.jsx                        # Entry point
-
+**Terminál 2 - Frontend:**
+```bash
+npm install && npm run dev
 ```
 
-## Technologie
+## Testovací přihlašovací údaje
 
-- React 18
-- React Router 6
-- Vite (build tool)
-- CSS3
+Po naplnění databáze (`npm run seed` v backend složce) můžete použít tyto testovací účty:
 
-## Komponenty
+Všichni uživatelé mají heslo: `password123`
 
-### Button
-Znovupoužitelná komponenta pro tlačítka s následujícími props:
-- `text` - text tlačítka
-- `color` - barva tlačítka (primary, success, danger, edit, cancel, filter)
-- `action` - funkce volaná při kliknutí
-- `type` - typ tlačítka (button, submit)
-- `size` - velikost (normal, small, large)
-- `disabled` - zakázání tlačítka
-- `active` - aktivní stav (pro filter tlačítka)
+1. **John Doe** - `john@example.com`
+   - Vlastník seznamů: Weekly Groceries, Old Shopping List
+   - Člen seznamu: Birthday Party Supplies
 
-Příklad použití:
-```jsx
-<Button
-  text="Uložit"
-  color="success"
-  action={handleSave}
-  type="submit"
-/>
-```
+2. **Jane Smith** - `jane@example.com`
+   - Vlastník seznamu: Birthday Party Supplies
+   - Člen seznamu: Weekly Groceries
 
-## Přepínání mezi uživateli
-
-Aplikace simuluje přihlášení uživatele. Pro otestování různých oprávnění můžete přepnout přihlášeného uživatele:
-
-1. Otevřete soubor `src/data/initialData.js`
-2. Na řádku 42 změňte hodnotu konstanty `CURRENT_USER`:
-
-```javascript
-// Dostupní uživatelé:
-export const CURRENT_USER = 'user1';  // Jan Novák (vlastník seznamů 1 a 3)
-// export const CURRENT_USER = 'user2';  // Marie Svobodová (vlastník seznamu 2)
-// export const CURRENT_USER = 'user3';  // Petr Dvořák (člen seznamů 2 a 3)
-```
-
-3. Uložte soubor a stránka se automaticky znovu načte (hot reload)
-
-**Tipy pro testování:**
-- `user1` (Jan Novák) - může upravovat a mazat seznamy "Týdenní nákup" a "Dovolená"
-- `user2` (Marie Svobodová) - může upravovat a mazat seznam "Oslava narozenin"
-- `user3` (Petr Dvořák) - nemůže upravovat názvy seznamů, ale může odejít ze seznamů
-
-## Poznámky
-
-- Data jsou uložena v konstantách (reloadem stránky se vrací do výchozího stavu)
-- Simulace přihlášeného uživatele (aktuálně: user3 - Petr Dvořák)
-- Všechny požadavky ze zadání jsou implementovány
-- Všechna tlačítka v aplikaci používají znovupoužitelnou Button komponentu
+3. **Bob Johnson** - `bob@example.com`
+   - Vlastník seznamu: Home Improvement
+   - Člen seznamu: Birthday Party Supplies
